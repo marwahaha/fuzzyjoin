@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="David Robinson" />
+
+<meta name="date" content="2016-04-05" />
+
+<title>Example of stringdist_inner_join: Correcting misspellings against a dictionary</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+</style>
+
+
+<link href="data:text/css,body%20%7B%0A%20%20background%2Dcolor%3A%20%23fff%3B%0A%20%20margin%3A%201em%20auto%3B%0A%20%20max%2Dwidth%3A%20700px%3B%0A%20%20overflow%3A%20visible%3B%0A%20%20padding%2Dleft%3A%202em%3B%0A%20%20padding%2Dright%3A%202em%3B%0A%20%20font%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0A%20%20font%2Dsize%3A%2014px%3B%0A%20%20line%2Dheight%3A%201%2E35%3B%0A%7D%0A%0A%23header%20%7B%0A%20%20text%2Dalign%3A%20center%3B%0A%7D%0A%0A%23TOC%20%7B%0A%20%20clear%3A%20both%3B%0A%20%20margin%3A%200%200%2010px%2010px%3B%0A%20%20padding%3A%204px%3B%0A%20%20width%3A%20400px%3B%0A%20%20border%3A%201px%20solid%20%23CCCCCC%3B%0A%20%20border%2Dradius%3A%205px%3B%0A%0A%20%20background%2Dcolor%3A%20%23f6f6f6%3B%0A%20%20font%2Dsize%3A%2013px%3B%0A%20%20line%2Dheight%3A%201%2E3%3B%0A%7D%0A%20%20%23TOC%20%2Etoctitle%20%7B%0A%20%20%20%20font%2Dweight%3A%20bold%3B%0A%20%20%20%20font%2Dsize%3A%2015px%3B%0A%20%20%20%20margin%2Dleft%3A%205px%3B%0A%20%20%7D%0A%0A%20%20%23TOC%20ul%20%7B%0A%20%20%20%20padding%2Dleft%3A%2040px%3B%0A%20%20%20%20margin%2Dleft%3A%20%2D1%2E5em%3B%0A%20%20%20%20margin%2Dtop%3A%205px%3B%0A%20%20%20%20margin%2Dbottom%3A%205px%3B%0A%20%20%7D%0A%20%20%23TOC%20ul%20ul%20%7B%0A%20%20%20%20margin%2Dleft%3A%20%2D2em%3B%0A%20%20%7D%0A%20%20%23TOC%20li%20%7B%0A%20%20%20%20line%2Dheight%3A%2016px%3B%0A%20%20%7D%0A%0Atable%20%7B%0A%20%20margin%3A%201em%20auto%3B%0A%20%20border%2Dwidth%3A%201px%3B%0A%20%20border%2Dcolor%3A%20%23DDDDDD%3B%0A%20%20border%2Dstyle%3A%20outset%3B%0A%20%20border%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0A%20%20border%2Dwidth%3A%202px%3B%0A%20%20padding%3A%205px%3B%0A%20%20border%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0A%20%20border%2Dwidth%3A%201px%3B%0A%20%20border%2Dstyle%3A%20inset%3B%0A%20%20line%2Dheight%3A%2018px%3B%0A%20%20padding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0A%20%20border%2Dleft%2Dstyle%3A%20none%3B%0A%20%20border%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0A%20%20background%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0A%0Ap%20%7B%0A%20%20margin%3A%200%2E5em%200%3B%0A%7D%0A%0Ablockquote%20%7B%0A%20%20background%2Dcolor%3A%20%23f6f6f6%3B%0A%20%20padding%3A%200%2E25em%200%2E75em%3B%0A%7D%0A%0Ahr%20%7B%0A%20%20border%2Dstyle%3A%20solid%3B%0A%20%20border%3A%20none%3B%0A%20%20border%2Dtop%3A%201px%20solid%20%23777%3B%0A%20%20margin%3A%2028px%200%3B%0A%7D%0A%0Adl%20%7B%0A%20%20margin%2Dleft%3A%200%3B%0A%7D%0A%20%20dl%20dd%20%7B%0A%20%20%20%20margin%2Dbottom%3A%2013px%3B%0A%20%20%20%20margin%2Dleft%3A%2013px%3B%0A%20%20%7D%0A%20%20dl%20dt%20%7B%0A%20%20%20%20font%2Dweight%3A%20bold%3B%0A%20%20%7D%0A%0Aul%20%7B%0A%20%20margin%2Dtop%3A%200%3B%0A%7D%0A%20%20ul%20li%20%7B%0A%20%20%20%20list%2Dstyle%3A%20circle%20outside%3B%0A%20%20%7D%0A%20%20ul%20ul%20%7B%0A%20%20%20%20margin%2Dbottom%3A%200%3B%0A%20%20%7D%0A%0Apre%2C%20code%20%7B%0A%20%20background%2Dcolor%3A%20%23f7f7f7%3B%0A%20%20border%2Dradius%3A%203px%3B%0A%20%20color%3A%20%23333%3B%0A%20%20white%2Dspace%3A%20pre%2Dwrap%3B%20%20%20%20%2F%2A%20Wrap%20long%20lines%20%2A%2F%0A%7D%0Apre%20%7B%0A%20%20border%2Dradius%3A%203px%3B%0A%20%20margin%3A%205px%200px%2010px%200px%3B%0A%20%20padding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0A%20%20background%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0A%0Acode%20%7B%0A%20%20font%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0A%20%20font%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0A%20%20padding%3A%202px%200px%3B%0A%7D%0A%0Adiv%2Efigure%20%7B%0A%20%20text%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0A%20%20background%2Dcolor%3A%20%23FFFFFF%3B%0A%20%20padding%3A%202px%3B%0A%20%20border%3A%201px%20solid%20%23DDDDDD%3B%0A%20%20border%2Dradius%3A%203px%3B%0A%20%20border%3A%201px%20solid%20%23CCCCCC%3B%0A%20%20margin%3A%200%205px%3B%0A%7D%0A%0Ah1%20%7B%0A%20%20margin%2Dtop%3A%200%3B%0A%20%20font%2Dsize%3A%2035px%3B%0A%20%20line%2Dheight%3A%2040px%3B%0A%7D%0A%0Ah2%20%7B%0A%20%20border%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0A%20%20padding%2Dtop%3A%2010px%3B%0A%20%20padding%2Dbottom%3A%202px%3B%0A%20%20font%2Dsize%3A%20145%25%3B%0A%7D%0A%0Ah3%20%7B%0A%20%20border%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0A%20%20padding%2Dtop%3A%2010px%3B%0A%20%20font%2Dsize%3A%20120%25%3B%0A%7D%0A%0Ah4%20%7B%0A%20%20border%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0A%20%20margin%2Dleft%3A%208px%3B%0A%20%20font%2Dsize%3A%20105%25%3B%0A%7D%0A%0Ah5%2C%20h6%20%7B%0A%20%20border%2Dbottom%3A%201px%20solid%20%23ccc%3B%0A%20%20font%2Dsize%3A%20105%25%3B%0A%7D%0A%0Aa%20%7B%0A%20%20color%3A%20%230033dd%3B%0A%20%20text%2Ddecoration%3A%20none%3B%0A%7D%0A%20%20a%3Ahover%20%7B%0A%20%20%20%20color%3A%20%236666ff%3B%20%7D%0A%20%20a%3Avisited%20%7B%0A%20%20%20%20color%3A%20%23800080%3B%20%7D%0A%20%20a%3Avisited%3Ahover%20%7B%0A%20%20%20%20color%3A%20%23BB00BB%3B%20%7D%0A%20%20a%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0A%20%20%20%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20a%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0A%20%20%20%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%0A%2F%2A%20Class%20described%20in%20https%3A%2F%2Fbenjeffrey%2Ecom%2Fposts%2Fpandoc%2Dsyntax%2Dhighlighting%2Dcss%0A%20%20%20Colours%20from%20https%3A%2F%2Fgist%2Egithub%2Ecom%2Frobsimmons%2F1172277%20%2A%2F%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%2F%2A%20Keyword%20%2A%2F%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%2F%2A%20DataType%20%2A%2F%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%2F%2A%20DecVal%20%28decimal%20values%29%20%2A%2F%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%2F%2A%20BaseN%20%2A%2F%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%2F%2A%20Float%20%2A%2F%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%2F%2A%20Char%20%2A%2F%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%2F%2A%20String%20%2A%2F%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%2F%2A%20Comment%20%2A%2F%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%2F%2A%20OtherToken%20%2A%2F%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%2F%2A%20AlertToken%20%2A%2F%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%2F%2A%20Function%20calls%20%2A%2F%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%2F%2A%20ErrorTok%20%2A%2F%0A%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+<div class="fluid-row" id="header">
+
+
+<h1 class="title">Example of <code>stringdist_inner_join</code>: Correcting misspellings against a dictionary</h1>
+<h4 class="author"><em>David Robinson</em></h4>
+<h4 class="date"><em>2016-04-05</em></h4>
+
+</div>
+
+
+<p>Often you find yourself with a set of words that you want to combine with a “dictionary”- it could be a literal dictionary (as in this case) or a domain-specific category system. But you want to allow for small differences in spelling or punctuation.</p>
+<p>The fuzzyjoin package comes with a set of common misspellings (<a href="https://en.wikipedia.org/wiki/Wikipedia:Lists_of_common_misspellings/For_machines">from Wikipedia</a>):</p>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(dplyr)
+<span class="kw">library</span>(fuzzyjoin)
+<span class="kw">data</span>(misspellings)
+
+misspellings</code></pre>
+<pre><code>## Source: local data frame [4,505 x 2]
+## 
+##    misspelling    correct
+##          (chr)      (chr)
+## 1   abandonned  abandoned
+## 2    aberation aberration
+## 3     abilties  abilities
+## 4       abilty    ability
+## 5      abondon    abandon
+## 6       abbout      about
+## 7        abotu      about
+## 8       abouta    about a
+## 9      aboutit   about it
+## 10    aboutthe  about the
+## ..         ...        ...</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># use the dictionary of words from the qdapDictionaries package,</span>
+<span class="co"># which is based on the Nettalk corpus.</span>
+<span class="kw">library</span>(qdapDictionaries)
+words &lt;-<span class="st"> </span><span class="kw">tbl_df</span>(DICTIONARY)
+
+words</code></pre>
+<pre><code>## Source: local data frame [20,137 x 2]
+## 
+##     word syllables
+##    (chr)     (dbl)
+## 1     hm         1
+## 2    hmm         1
+## 3   hmmm         1
+## 4   hmph         1
+## 5  mmhmm         2
+## 6   mmhm         2
+## 7     mm         1
+## 8    mmm         1
+## 9   mmmm         1
+## 10   pff         1
+## ..   ...       ...</code></pre>
+<p>As an example, we’ll pick 1000 of these words (you could try it on all of them though), and use <code>stringdist_inner_join</code> to join them against our dictionary.</p>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">2016</span>)
+sub_misspellings &lt;-<span class="st"> </span>misspellings %&gt;%
+<span class="st">  </span><span class="kw">sample_n</span>(<span class="dv">1000</span>)</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r">joined &lt;-<span class="st"> </span>sub_misspellings %&gt;%
+<span class="st">  </span><span class="kw">stringdist_inner_join</span>(words, <span class="dt">by =</span> <span class="kw">c</span>(<span class="dt">misspelling =</span> <span class="st">&quot;word&quot;</span>), <span class="dt">max_dist =</span> <span class="dv">1</span>)</code></pre>
+<p>By default, <code>stringdist_inner_join</code> uses optimal string alignment (Damerau–Levenshtein distance), and we’re setting a maximum distance of 1 for a join. Notice that they’ve been joined in cases where <code>misspelling</code> is close to (but not equal to) <code>word</code>:</p>
+<pre class="sourceCode r"><code class="sourceCode r">joined</code></pre>
+<pre><code>## Source: local data frame [728 x 4]
+## 
+##    misspelling correct    word syllables
+##          (chr)   (chr)   (chr)     (dbl)
+## 1        sould  should   could         1
+## 2        sould  should  should         1
+## 3        sould  should    sold         1
+## 4        sould  should    soul         1
+## 5        sould  should   sound         1
+## 6        sould  should   would         1
+## 7        fiels   feels   field         1
+## 8        fiels   feels    fils         1
+## 9     conscent consent consent         2
+## 10       fleed   freed   bleed         1
+## ..         ...     ...     ...       ...</code></pre>
+<p>Note that there are some redundancies; words that could be multiple items in the dictionary. These end up with one row per “guess” in the output. How many words did we classify?</p>
+<pre class="sourceCode r"><code class="sourceCode r">joined %&gt;%
+<span class="st">  </span><span class="kw">count</span>(misspelling, correct)</code></pre>
+<pre><code>## Source: local data frame [455 x 3]
+## Groups: misspelling [?]
+## 
+##    misspelling      correct     n
+##          (chr)        (chr) (int)
+## 1    abritrary    arbitrary     1
+## 2    accademic     academic     1
+## 3    accension    ascension     2
+## 4   accessable   accessible     1
+## 5     accidant     accident     1
+## 6  accidentaly accidentally     1
+## 7    accordeon    accordion     1
+## 8       addopt        adopt     1
+## 9    addtional   additional     1
+## 10  admendment    amendment     1
+## ..         ...          ...   ...</code></pre>
+<p>So we found a match in the dictionary for about half of the misspellings. In how many of the ones we classified did we get at least one of our guesses right?</p>
+<pre class="sourceCode r"><code class="sourceCode r">which_correct &lt;-<span class="st"> </span>joined %&gt;%
+<span class="st">  </span><span class="kw">group_by</span>(misspelling, correct) %&gt;%
+<span class="st">  </span><span class="kw">summarize</span>(<span class="dt">guesses =</span> <span class="kw">n</span>(), <span class="dt">one_correct =</span> <span class="kw">any</span>(correct ==<span class="st"> </span>word))
+
+which_correct</code></pre>
+<pre><code>## Source: local data frame [455 x 4]
+## Groups: misspelling [?]
+## 
+##    misspelling      correct guesses one_correct
+##          (chr)        (chr)   (int)       (lgl)
+## 1    abritrary    arbitrary       1        TRUE
+## 2    accademic     academic       1        TRUE
+## 3    accension    ascension       2        TRUE
+## 4   accessable   accessible       1        TRUE
+## 5     accidant     accident       1        TRUE
+## 6  accidentaly accidentally       1       FALSE
+## 7    accordeon    accordion       1        TRUE
+## 8       addopt        adopt       1        TRUE
+## 9    addtional   additional       1        TRUE
+## 10  admendment    amendment       1        TRUE
+## ..         ...          ...     ...         ...</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># percentage of guesses getting at least one right</span>
+<span class="kw">mean</span>(which_correct$one_correct)</code></pre>
+<pre><code>## [1] 0.8527473</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># number uniquely correct (out of the original 1000)</span>
+<span class="kw">sum</span>(which_correct$guesses ==<span class="st"> </span><span class="dv">1</span> &amp;<span class="st"> </span>which_correct$one_correct)</code></pre>
+<pre><code>## [1] 294</code></pre>
+<p>Not bad.</p>
+<p>Note that <code>stringdist_inner_join</code> is not the only function we can use. If we’re interested in including the words that we <em>couldn’t</em> classify, we could have use <code>stringdiststringdist_left_join</code>:</p>
+<pre class="sourceCode r"><code class="sourceCode r">left_joined &lt;-<span class="st"> </span>sub_misspellings %&gt;%
+<span class="st">  </span><span class="kw">stringdist_left_join</span>(words, <span class="dt">by =</span> <span class="kw">c</span>(<span class="dt">misspelling =</span> <span class="st">&quot;word&quot;</span>), <span class="dt">max_dist =</span> <span class="dv">1</span>)
+
+left_joined</code></pre>
+<pre><code>## Source: local data frame [1,273 x 4]
+## 
+##     misspelling      correct   word syllables
+##           (chr)        (chr)  (chr)     (dbl)
+## 1    charactors   characters     NA        NA
+## 2    Brasillian    Brazilian     NA        NA
+## 3         sould       should  could         1
+## 4         sould       should should         1
+## 5         sould       should   sold         1
+## 6         sould       should   soul         1
+## 7         sould       should  sound         1
+## 8         sould       should  would         1
+## 9   belligerant  belligerent     NA        NA
+## 10 incorportaed incorporated     NA        NA
+## ..          ...          ...    ...       ...</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r">left_joined %&gt;%
+<span class="st">  </span><span class="kw">filter</span>(<span class="kw">is.na</span>(word))</code></pre>
+<pre><code>## Source: local data frame [545 x 4]
+## 
+##     misspelling      correct  word syllables
+##           (chr)        (chr) (chr)     (dbl)
+## 1    charactors   characters    NA        NA
+## 2    Brasillian    Brazilian    NA        NA
+## 3   belligerant  belligerent    NA        NA
+## 4  incorportaed incorporated    NA        NA
+## 5          awya         away    NA        NA
+## 6      occuring    occurring    NA        NA
+## 7   surveilence surveillance    NA        NA
+## 8     abondoned    abandoned    NA        NA
+## 9      alledges      alleges    NA        NA
+## 10  deliberatly deliberately    NA        NA
+## ..          ...          ...   ...       ...</code></pre>
+<p>(To get <em>just</em> the ones without matches immediately, we could have used <code>stringdist_anti_join</code>). If we increase our distance threshold, we’ll increase the fraction with a correct guess, but also get more false positive guesses:</p>
+<pre class="sourceCode r"><code class="sourceCode r">left_joined2 &lt;-<span class="st"> </span>sub_misspellings %&gt;%
+<span class="st">  </span><span class="kw">stringdist_left_join</span>(words, <span class="dt">by =</span> <span class="kw">c</span>(<span class="dt">misspelling =</span> <span class="st">&quot;word&quot;</span>), <span class="dt">max_dist =</span> <span class="dv">2</span>)
+
+left_joined2</code></pre>
+<pre><code>## Source: local data frame [7,691 x 4]
+## 
+##    misspelling    correct       word syllables
+##          (chr)      (chr)      (chr)     (dbl)
+## 1   charactors characters  character         3
+## 2   charactors characters charactery         4
+## 3   Brasillian  Brazilian         NA        NA
+## 4        sould     should       auld         1
+## 5        sould     should       bold         1
+## 6        sould     should      bound         1
+## 7        sould     should       cold         1
+## 8        sould     should      could         1
+## 9        sould     should       fold         1
+## 10       sould     should       foul         1
+## ..         ...        ...        ...       ...</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r">left_joined2 %&gt;%
+<span class="st">  </span><span class="kw">filter</span>(<span class="kw">is.na</span>(word))</code></pre>
+<pre><code>## Source: local data frame [264 x 4]
+## 
+##      misspelling       correct  word syllables
+##            (chr)         (chr) (chr)     (dbl)
+## 1     Brasillian     Brazilian    NA        NA
+## 2    belligerant   belligerent    NA        NA
+## 3       occuring     occurring    NA        NA
+## 4      abondoned     abandoned    NA        NA
+## 5   correponding corresponding    NA        NA
+## 6  archeaologist archaeologist    NA        NA
+## 7    emmediately   immediately    NA        NA
+## 8     possessess     possesses    NA        NA
+## 9        unahppy       unhappy    NA        NA
+## 10        Guilio        Giulio    NA        NA
+## ..           ...           ...   ...       ...</code></pre>
+<p>Most of the missing words here simply aren’t in our dictionary.</p>
+<p>You can try other distance thresholds, other dictionaries, and other distance metrics (see [stringdist-metrics] for more). This function is especially useful on a domain-specific dataset, such as free-form survey input that is likely to be close to one of a handful of responses.</p>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
