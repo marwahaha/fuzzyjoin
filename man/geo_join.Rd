@@ -10,21 +10,27 @@
 \alias{geo_semi_join}
 \title{Join two tables based on a geo distance of longitudes and latitudes}
 \usage{
-geo_join(x, y, by = NULL, max_dist, method = c("haversine", "cosine",
+geo_join(x, y, by = NULL, max_dist, method = c("haversine", "geo", "cosine",
   "meeus", "vincentysphere", "vincentyellipsoid"), unit = c("miles", "km"),
-  mode = "inner", ...)
+  mode = "inner", distance_col = NULL, ...)
 
-geo_inner_join(x, y, by = NULL, method = "haversine", max_dist = 1)
+geo_inner_join(x, y, by = NULL, method = "haversine", max_dist = 1,
+  distance_col = NULL, ...)
 
-geo_left_join(x, y, by = NULL, method = "haversine", max_dist = 1)
+geo_left_join(x, y, by = NULL, method = "haversine", max_dist = 1,
+  distance_col = NULL, ...)
 
-geo_right_join(x, y, by = NULL, method = "haversine", max_dist = 1)
+geo_right_join(x, y, by = NULL, method = "haversine", max_dist = 1,
+  distance_col = NULL, ...)
 
-geo_full_join(x, y, by = NULL, method = "haversine", max_dist = 1)
+geo_full_join(x, y, by = NULL, method = "haversine", max_dist = 1,
+  distance_col = NULL, ...)
 
-geo_semi_join(x, y, by = NULL, method = "haversine", max_dist = 1)
+geo_semi_join(x, y, by = NULL, method = "haversine", max_dist = 1,
+  distance_col = NULL, ...)
 
-geo_anti_join(x, y, by = NULL, method = "haversine", max_dist = 1)
+geo_anti_join(x, y, by = NULL, method = "haversine", max_dist = 1,
+  distance_col = NULL, ...)
 }
 \arguments{
 \item{x}{A tbl}
@@ -42,6 +48,9 @@ geo_anti_join(x, y, by = NULL, method = "haversine", max_dist = 1)
 \item{unit}{Unit of distance for threshold (default "miles")}
 
 \item{mode}{One of "inner", "left", "right", "full" "semi", or "anti"}
+
+\item{distance_col}{If given, will add a column with this
+name containing the geographical distance between the two}
 
 \item{...}{Extra arguments passed on to the distance method}
 }
@@ -89,6 +98,10 @@ ggplot(pairs, aes(x = longitude.x, y = latitude.x,
   geom_segment(color = "red") +
   borders("state") +
   theme_void()
+
+# also get distances
+s1 \%>\%
+  geo_inner_join(s2, max_dist = 200, distance_col = "distance")
 
 }
 

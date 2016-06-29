@@ -8,7 +8,7 @@
 \alias{fuzzy_left_join}
 \alias{fuzzy_right_join}
 \alias{fuzzy_semi_join}
-\title{Join two tables based not on exact matches, but rather with a function
+\title{Join two tables based not on exact matches, but with a function
 describing whether two vectors are matched or not}
 \usage{
 fuzzy_join(x, y, by = NULL, match_fun = NULL, multi_by = NULL,
@@ -54,8 +54,17 @@ The \code{match_fun} argument is called once on a vector with all pairs
 of unique comparisons: thus, it should be efficient and vectorized.
 }
 \details{
+match_fun should return either a logical vector, or a data
+frame where the first column is logical. If the latter, the
+additional columns will be appended to the output. For example,
+these additional columns could contain the distance metrics that
+one is filtering on.
+
 Note that as of now, you cannot give both \code{match_fun}
 and \code{multi_match_fun}- you can either compare each column
 individually or compare all of them.
+
+Like in dplyr's join operations, \code{fuzzy_join} ignores groups,
+but preserves the grouping of x in the output.
 }
 

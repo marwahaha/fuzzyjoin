@@ -12,19 +12,19 @@
 \usage{
 stringdist_join(x, y, by = NULL, max_dist = 2, method = c("osa", "lv",
   "dl", "hamming", "lcs", "qgram", "cosine", "jaccard", "jw", "soundex"),
-  mode = "inner", ignore_case = FALSE, ...)
+  mode = "inner", ignore_case = FALSE, distance_col = NULL, ...)
 
-stringdist_inner_join(x, y, by = NULL, ...)
+stringdist_inner_join(x, y, by = NULL, distance_col = NULL, ...)
 
-stringdist_left_join(x, y, by = NULL, ...)
+stringdist_left_join(x, y, by = NULL, distance_col = NULL, ...)
 
-stringdist_right_join(x, y, by = NULL, ...)
+stringdist_right_join(x, y, by = NULL, distance_col = NULL, ...)
 
-stringdist_full_join(x, y, by = NULL, ...)
+stringdist_full_join(x, y, by = NULL, distance_col = NULL, ...)
 
-stringdist_semi_join(x, y, by = NULL, ...)
+stringdist_semi_join(x, y, by = NULL, distance_col = NULL, ...)
 
-stringdist_anti_join(x, y, by = NULL, ...)
+stringdist_anti_join(x, y, by = NULL, distance_col = NULL, ...)
 }
 \arguments{
 \item{x}{A tbl}
@@ -41,6 +41,9 @@ stringdist_anti_join(x, y, by = NULL, ...)
 \item{mode}{One of "inner", "left", "right", "full" "semi", or "anti"}
 
 \item{ignore_case}{Whether to be case insensitive (default yes)}
+
+\item{distance_col}{If given, will add a column with this
+name containing the difference between the two}
 
 \item{...}{Arguments passed on to \code{\link{stringdist}}}
 }

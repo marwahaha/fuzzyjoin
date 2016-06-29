@@ -1,4 +1,4 @@
-#' Join two tables based not on exact matches, but rather with a function
+#' Join two tables based not on exact matches, but with a function
 #' describing whether two vectors are matched or not
 #'
 #' The \code{match_fun} argument is called once on a vector with all pairs
@@ -19,9 +19,18 @@
 #' @param mode One of "inner", "left", "right", "full" "semi", or "anti"
 #' @param ... Extra arguments passed to match_fun
 #'
-#' @details Note that as of now, you cannot give both \code{match_fun}
+#' @details match_fun should return either a logical vector, or a data
+#' frame where the first column is logical. If the latter, the
+#' additional columns will be appended to the output. For example,
+#' these additional columns could contain the distance metrics that
+#' one is filtering on.
+#'
+#' Note that as of now, you cannot give both \code{match_fun}
 #' and \code{multi_match_fun}- you can either compare each column
 #' individually or compare all of them.
+#'
+#' Like in dplyr's join operations, \code{fuzzy_join} ignores groups,
+#' but preserves the grouping of x in the output.
 #'
 #' @importFrom dplyr %>%
 #'
@@ -29,6 +38,22 @@
 fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
                        multi_by = NULL, multi_match_fun = NULL,
                        mode = "inner", ...) {
+  # preserve the grouping of x
+  x_groups <- dplyr::groups(x)
+  x <- dplyr::ungroup(x)
+  regroup <- function(d) {
+    if (is.null(x_groups)) {
+      return(d)
+    }
+
+    g <- purrr::map_chr(x_groups, as.character)
+    missing <- !(g %in% colnames(d))
+    # add .x to those that are missing; they've been renamed
+    g[missing] <- paste0(g[missing], ".x")
+
+    dplyr::group_by_(d, .dots = g)
+  }
+
   mode <- match.arg(mode, c("inner", "left", "right", "full", "semi", "anti"))
 
   if (is.null(multi_match_fun) && is.null(match_fun)) {
@@ -41,10 +66,10 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
   if (is.null(multi_match_fun) || !is.null(by)) {
     by <- common_by(by, x, y)
 
-    if (length(match_fun) == 1){
+    if (length(match_fun) == 1) {
       match_fun <- rep(c(match_fun), length(by$x))
     }
-    if (length(match_fun) != length(by$x)){
+    if (length(match_fun) != length(by$x)) {
       stop("Length of match_fun not equal to columns specified in 'by'.", call. = FALSE)
     }
 
@@ -72,7 +97,19 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
         mf <- match_fun[[i]]
       }
 
-      m <- outer(u_x, u_y, mf, ...)
+      extra_cols <- NULL
+
+      n_x <- length(u_x)
+      n_y <- length(u_y)
+      m <- mf(rep(u_x, n_y), rep(u_y, each = n_x), ...)
+
+      if (is.data.frame(m)) {
+        if (ncol(m) > 1) {
+          # first column is logical, others are included as distance columns
+          extra_cols <- m[, -1, drop = FALSE]
+        }
+        m <- m[[1]]
+      }
 
       # return as a data frame of x and y indices that match
       w <- which(m) - 1
@@ -83,25 +120,46 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
         return(ret)
       }
 
-      n_x <- length(u_x)
       x_indices_l <- indices_x$indices[w %% n_x + 1]
       y_indices_l <- indices_y$indices[w %/% n_x + 1]
 
-      xls <- purrr::map_dbl(x_indices_l, length)
-      yls <- purrr::map_dbl(y_indices_l, length)
+      xls <- lengths(x_indices_l)
+      yls <- lengths(y_indices_l)
 
       x_rep <- unlist(purrr::map2(x_indices_l, yls, function(x, y) rep(x, each = y)))
       y_rep <- unlist(purrr::map2(y_indices_l, xls, function(y, x) rep(y, x)))
 
-      dplyr::data_frame(i = i, x = x_rep, y = y_rep)
+      ret <- dplyr::data_frame(i = i, x = x_rep, y = y_rep)
+
+      if (!is.null(extra_cols)) {
+        extra_indices <- rep(w, xls * yls)
+        extra_cols_rep <- extra_cols[extra_indices + 1, , drop = FALSE]
+        ret <- dplyr::bind_cols(ret, extra_cols_rep)
+      }
+
+      ret
     }))
 
     if (length(by$x) > 1) {
       # only take cases where all pairs have matches
-      matches <- matches %>%
+      accept <- matches %>%
         dplyr::count(x, y) %>%
         dplyr::ungroup() %>%
         dplyr::filter(n == length(by$x))
+
+      matches <- matches %>%
+        dplyr::semi_join(accept, by = c("x", "y"))
+
+      if (ncol(matches) > 3) {
+        # include one for each
+        matches <- matches %>%
+          dplyr::semi_join(accept, by = c("x", "y")) %>%
+          dplyr::mutate(name = by$x[i]) %>%
+          dplyr::select(-i) %>%
+          tidyr::gather(key, value, -x, -y, -name) %>%
+          tidyr::unite(newname, name, key, sep = ".") %>%
+          tidyr::spread(newname, value)
+      }
     }
   } else {
     # use multiple matches
@@ -129,6 +187,14 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
 
     m <- multi_match_fun(ux_input, uy_input)
 
+    extra_cols <- NULL
+    if (is.data.frame(m)) {
+      if (ncol(m) > 1) {
+        extra_cols <- m[, -1, drop = FALSE]
+      }
+      m <- m[[1]]
+    }
+
     if (sum(m) == 0) {
       # there are no matches
       matches <- dplyr::data_frame(x = numeric(0), y = numeric(0))
@@ -141,25 +207,31 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
       y_rep <- unlist(purrr::map2(y_indices_l, xls, function(y, x) rep(y, x)))
 
       matches <- dplyr::data_frame(x = x_rep, y = y_rep)
+      if (!is.null(extra_cols)) {
+        extra_indices <- rep(which(m), xls * yls)
+        extra_cols_rep <- extra_cols[extra_indices, , drop = FALSE]
+        matches <- dplyr::bind_cols(matches, extra_cols_rep)
+      }
     }
   }
+  matches$i <- NULL
 
   if (mode == "semi") {
     # just use the x indices to include
-    return(x[sort(unique(matches$x)), ])
+    return(regroup(x[sort(unique(matches$x)), ]))
   }
   if (mode == "anti") {
     if (nrow(matches) == 0) {
-      return(x)
+      return(regroup(x))
     }
     # just use the x indices to exclude
-    return(x[-sort(unique(matches$x)), ])
+    return(regroup(x[-sort(unique(matches$x)), ]))
   }
 
   matches <- dplyr::arrange(matches, x, y)
 
   # in cases where columns share a name, rename each to .x and .y
-  for (n in by$x[by$x == by$y]) {
+  for (n in intersect(colnames(x), colnames(y))) {
     x <- dplyr::rename_(x, .dots = structure(n, .Names = paste0(n, ".x")))
     y <- dplyr::rename_(y, .dots = structure(n, .Names = paste0(n, ".y")))
   }
@@ -178,7 +250,13 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
       dplyr::full_join(dplyr::data_frame(y = seq_len(nrow(y))), by = "y")
   }
 
-  dplyr::bind_cols(x[matches$x, ], y[matches$y, ])
+  ret <- dplyr::bind_cols(x[matches$x, ], y[matches$y, ])
+  if (ncol(matches) > 2) {
+    extra_cols <- matches[, -(1:2), drop = FALSE]
+    ret <- dplyr::bind_cols(ret, extra_cols)
+  }
+
+  regroup(ret)
 }
 
 

@@ -1,6 +1,3 @@
-library(ggplot2)
-library(dplyr)
-
 context("stringdist_join")
 
 # setup
@@ -10,7 +7,7 @@ d <- data_frame(cut2 = c("Idea", "Premiums", "Premiom",
 
 test_that("stringdist_inner_join works on a large df with multiples in each", {
   # create something with names close to the cut column in the diamonds dataset
-  j <- stringdist_inner_join(diamonds, d, by = c(cut = "cut2"))
+  j <- stringdist_inner_join(diamonds, d, by = c(cut = "cut2"), distance_col = "distance")
 
   result <- j %>%
     count(cut, cut2) %>%
@@ -22,6 +19,7 @@ test_that("stringdist_inner_join works on a large df with multiples in each", {
   expect_equal(sum(j$cut == "Premium"), sum(diamonds$cut == "Premium") * 2)
   expect_equal(sum(j$cut == "Very Good"), sum(diamonds$cut == "Very Good") * 2)
   expect_equal(sum(j$cut2 == "Premiom"), sum(diamonds$cut == "Premium"))
+  expect_true(all(j$distance == 1))
 
   vg <- j %>%
     filter(cut == "Very Good") %>%
@@ -132,7 +130,7 @@ test_that("stringdist_inner_join works with multiple match functions", {
   expect_equal(as.character(result$cut), c("Fair", "Very Good", "Premium", "Premium", "Ideal"))
   expect_equal(result$cut2, c("Faiir", "VeryGood", "Premiom", "Premiums", "Idea"))
 
-  expect_less_than(max(abs(j$carat - j$carat2)), .25)
+  expect_lt(max(abs(j$carat - j$carat2)), .25)
 
   # give match_fun as a named list
   j_named <- diamonds %>%
@@ -183,4 +181,53 @@ test_that("stringdist_join works with data frames without matches", {
   expect_equal(nrow(j6), nrow(diamonds))
   expect_true("cut" %in% colnames(diamonds))
   expect_true(!("cut2" %in% colnames(diamonds)))
+})
+
+
+test_that("stringdist_join renames similar columns", {
+  d <- data_frame(cut = c("Idea", "Premiums", "Premiom",
+                           "VeryGood", "VeryGood", "Faiir")) %>%
+    mutate(price = row_number())
+
+  j <- stringdist_inner_join(diamonds, d, by = "cut")
+
+  expect_true("cut.x" %in% colnames(j))
+  expect_true("price.x" %in% colnames(j))
+  expect_true("cut.y" %in% colnames(j))
+  expect_true("price.y" %in% colnames(j))
+
+  expect_true(all(j$cut.y %in% d$cut))
+  expect_true(all(j$price.y %in% d$price))
+})
+
+
+test_that("stringdist_join works on grouped data frames", {
+  d <- data_frame(cut2 = c("Idea", "Premiums", "Premiom",
+                           "VeryGood", "VeryGood", "Faiir")) %>%
+    mutate(type = row_number())
+
+  diamonds_grouped <- diamonds %>%
+    group_by(cut)
+
+  d2 <- data_frame(cut = c("Idea", "Premiums", "Premiom",
+                           "VeryGood", "VeryGood", "Faiir")) %>%
+    mutate(type = row_number())
+
+  for (mode in c("inner", "left", "right", "full", "semi", "anti")) {
+    j1 <- stringdist_join(diamonds, d, by = c(cut = "cut2"), mode = mode)
+    j2 <- stringdist_join(diamonds_grouped, d, by = c(cut = "cut2"), mode = mode)
+
+    expect_equal(length(groups(j2)), 1)
+    expect_equal(as.character(groups(j2)[[1]]), "cut")
+    expect_equal(j1, ungroup(j2))
+
+    j3 <- stringdist_join(diamonds_grouped, d2, by = "cut", mode = mode)
+    expect_equal(length(groups(j3)), 1)
+    expect_equal(nrow(j1), nrow(j3))
+    if (mode %in% c("semi", "anti")) {
+      expect_equal(as.character(groups(j3)[[1]]), "cut")
+    } else {
+      expect_equal(as.character(groups(j3)[[1]]), "cut.x")
+    }
+  }
 })

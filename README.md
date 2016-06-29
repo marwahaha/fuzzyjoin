@@ -5,6 +5,12 @@
 fuzzyjoin: Join data frames on inexact matching
 ------------------
 
+[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/fuzzyjoin)](http://cran.r-project.org/package=fuzzyjoin)
+[![Travis-CI Build Status](https://travis-ci.org/dgrtwo/fuzzyjoin.svg?branch=master)](https://travis-ci.org/dgrtwo/fuzzyjoin)
+[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/dgrtwo/fuzzyjoin?branch=master&svg=true)](https://ci.appveyor.com/project/dgrtwo/fuzzyjoin)
+[![Coverage Status](https://img.shields.io/codecov/c/github/dgrtwo/fuzzyjoin/master.svg)](https://codecov.io/github/dgrtwo/fuzzyjoin?branch=master)
+
+
 The fuzzyjoin package is a variation on dplyr's [join](http://www.inside-r.org/node/230646) operations that allows matching not just on values that match between columns, but on inexact matching. This allows matching on:
 
 * Numeric values that are within some tolerance (`difference_inner_join`)
@@ -25,10 +31,18 @@ The package also includes:
   * `regex_semi_join` (filter left table for rows with matches)
   * `regex_anti_join` (filter left table for rows without matches)
 * A general wrapper (`fuzzy_join`) that allows you to define your own custom fuzzy matching function.
+* The option to include the calculated distance as a column in your output, using the `distance_col` argument
 
 ### Installation
 
-Install from GitHub using [devtools](https://cran.r-project.org/package=devtools):
+Install from CRAN with:
+
+
+```r
+install.packages("fuzzyjoin")
+```
+
+You can also install the development version from GitHub using [devtools](https://cran.r-project.org/package=devtools):
 
 
 ```r
@@ -127,6 +141,8 @@ joined
 #> ..         ...     ...     ...       ...
 ```
 
+#### Classification accuracy
+
 Note that there are some redundancies; words that could be multiple items in the dictionary. These end up with one row per "guess" in the output. How many words did we classify?
 
 
@@ -188,7 +204,74 @@ sum(which_correct$guesses == 1 & which_correct$one_correct)
 
 Not bad.
 
-Note that `stringdist_inner_join` is not the only function we can use. If we're interested in including the words that we *couldn't* classify, we could have use `stringdiststringdist_left_join`:
+#### Reporting distance in the joined output
+
+If you wanted to include the distance as a column in your output, you can use the `distance_col` argument. For example, we may be interested in how many words were *two* letters apart.
+
+
+```r
+joined_dists <- sub_misspellings %>%
+  stringdist_inner_join(words, by = c(misspelling = "word"), max_dist = 2,
+                        distance_col = "distance")
+
+joined_dists
+#> Source: local data frame [7,427 x 5]
+#> 
+#>    misspelling    correct       word syllables distance
+#>          (chr)      (chr)      (chr)     (dbl)    (dbl)
+#> 1   charactors characters  character         3        2
+#> 2   charactors characters charactery         4        2
+#> 3        sould     should       auld         1        2
+#> 4        sould     should       bold         1        2
+#> 5        sould     should      bound         1        2
+#> 6        sould     should       cold         1        2
+#> 7        sould     should      could         1        1
+#> 8        sould     should       fold         1        2
+#> 9        sould     should       foul         1        2
+#> 10       sould     should      found         1        2
+#> ..         ...        ...        ...       ...      ...
+```
+
+Note the extra `distance` column, which in this case will always be less than or equal to 2. We could then pick the closest match for each, and examine how many of our closest matches were 1 or 2 away:
+
+
+```r
+closest <- joined_dists %>%
+  group_by(misspelling) %>%
+  top_n(1, desc(distance))
+
+closest
+#> Source: local data frame [1,437 x 5]
+#> Groups: misspelling [721]
+#> 
+#>     misspelling      correct        word syllables distance
+#>           (chr)        (chr)       (chr)     (dbl)    (dbl)
+#> 1    charactors   characters   character         3        2
+#> 2    charactors   characters  charactery         4        2
+#> 3         sould       should       could         1        1
+#> 4         sould       should      should         1        1
+#> 5         sould       should        sold         1        1
+#> 6         sould       should        soul         1        1
+#> 7         sould       should       sound         1        1
+#> 8         sould       should       would         1        1
+#> 9  incorportaed incorporated incorporate         4        2
+#> 10         awya         away          aa         2        2
+#> ..          ...          ...         ...       ...      ...
+
+closest %>%
+  count(distance)
+#> Source: local data frame [3 x 2]
+#> 
+#>   distance     n
+#>      (dbl) (int)
+#> 1        0     1
+#> 2        1   725
+#> 3        2   711
+```
+
+#### Other joining functions
+
+Note that `stringdist_inner_join` is not the only function we can use. If we're interested in including the words that we *couldn't* classify, we could have use `stringdist_left_join`:
 
 
 ```r
@@ -280,12 +363,7 @@ You can try other distance thresholds, other dictionaries, and other distance me
 
 ### Example of `regex_inner_join`: Classifying text based on regular expressions
 
-Consider the book Pride and Prejudice, by Jane Austen, which we can access through the `janeaustenr` package. Note that you'll have to first install it with:
-
-
-```r
-devtools::install_github("juliasilge/janeaustenr")
-```
+Consider the book Pride and Prejudice, by Jane Austen, which we can access through the [janeaustenr package](https://cran.r-project.org/package=janeaustenr).
 
 We could split the books up into "passages" of 50 lines each.
 
@@ -300,7 +378,7 @@ passages <- data_frame(text = prideprejudice) %>%
   summarize(text = paste(text, collapse = " "))
 
 passages
-#> Source: local data frame [215 x 2]
+#> Source: local data frame [249 x 2]
 #> 
 #>    passage
 #>      (dbl)
@@ -357,20 +435,20 @@ This combines the two data frames based on cases where the `passages$text` colum
 ```r
 character_passages %>%
   select(passage, character, text)
-#> Source: local data frame [1,015 x 3]
+#> Source: local data frame [1,097 x 3]
 #> 
 #>    passage       character
 #>      (dbl)           (chr)
 #> 1        1      Mr. Bennet
 #> 2        1            Jane
-#> 3        1 Charlotte Lucas
-#> 4        2       Elizabeth
-#> 5        2      Mr. Bennet
-#> 6        2     Mrs. Bennet
-#> 7        2            Jane
-#> 8        2           Lydia
-#> 9        3      Mr. Bennet
-#> 10       3     Mrs. Bennet
+#> 3        2      Mr. Bennet
+#> 4        2            Jane
+#> 5        2           Lydia
+#> 6        2 Charlotte Lucas
+#> 7        3       Elizabeth
+#> 8        3      Mr. Bennet
+#> 9        3     Mrs. Bennet
+#> 10       4      Mr. Bennet
 #> ..     ...             ...
 #> Variables not shown: text (chr)
 ```
@@ -387,20 +465,20 @@ character_passages %>%
 #> 
 #>                   character     n
 #>                       (chr) (int)
-#> 1                 Elizabeth   194
-#> 2                     Darcy   137
-#> 3                      Jane   122
-#> 4                   Wickham    82
-#> 5               Mrs. Bennet    79
-#> 6                     Lydia    72
-#> 7               Mr. Collins    70
-#> 8           Charlotte Lucas    60
-#> 9                Mr. Bennet    52
-#> 10                    Kitty    39
-#> 11            Mrs. Gardiner    33
+#> 1                 Elizabeth   217
+#> 2                     Darcy   152
+#> 3                      Jane   132
+#> 4               Mrs. Bennet    88
+#> 5                   Wickham    85
+#> 6               Mr. Collins    77
+#> 7                     Lydia    75
+#> 8           Charlotte Lucas    68
+#> 9                Mr. Bennet    53
+#> 10                    Kitty    40
+#> 11            Mrs. Gardiner    35
 #> 12 Lady Catherine de Bourgh    26
-#> 13             Mr. Gardiner    26
-#> 14                     Mary    23
+#> 13             Mr. Gardiner    25
+#> 14                     Mary    24
 ```
 
 The data is also well suited to discover which characters appear in scenes together, and to cluster them to find groupings of characters (like in [this analysis]).
@@ -430,3 +508,7 @@ A few things I'd like to work on:
 * **Shortcuts on string distance matching**: If two strings are more than 1 character apart in length, the method is `osa`, and `max_dist` is 1, you don't even need to compare them.
 
 * **More examples**: I've used this package in other powerful ways, but on proprietary data. I'm interested in ideas for use cases that can be provided as vignettes.
+
+### Code of Conduct
+
+Please note that this project is released with a [Contributor Code of Conduct](CONDUCT.md). By participating in this project you agree to abide by its terms.

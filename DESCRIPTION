@@ -1,9 +1,9 @@
 Package: fuzzyjoin
 Type: Package
 Title: Join Tables Together on Inexact Matching
-Version: 0.1
-Date: 2016-03-22
-Author: c(person("David", "Robinson", email = "drobinson@stackoverflow.com",
+Version: 0.1.1
+Date: 2016-06-27
+Authors@R: c(person("David", "Robinson", email = "drobinson@stackoverflow.com",
     role = c("aut", "cre")),
           person("Joran", "Elias", email = "statisticalskier@gmail.com",
           role = "ctb"))
@@ -18,9 +18,11 @@ VignetteBuilder: knitr
 Depends: R (>= 2.10)
 Imports: stringdist, stringr, dplyr, tidyr (>= 0.4.0), purrr, geosphere
 Suggests: testthat, knitr, ggplot2, qdapDictionaries, readr, rvest,
-        rmarkdown, maps
+        rmarkdown, maps, covr
 RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2016-04-05 17:07:00 UTC; drobinson
+Packaged: 2016-06-28 07:43:52 UTC; dgrtwo
+Author: David Robinson [aut, cre],
+  Joran Elias [ctb]
 Repository: CRAN
-Date/Publication: 2016-04-06 01:20:47
+Date/Publication: 2016-06-29 02:51:56

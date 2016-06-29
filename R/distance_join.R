@@ -12,6 +12,8 @@
 #' @param max_dist Maximum distance to use for joining
 #' @param method Method to use for computing distance, either euclidean (default)
 #' or manhattan.
+#' @param distance_col If given, will add a column with this
+#' name containing the distance between the two
 #' @param mode One of "inner", "left", "right", "full" "semi", or "anti"
 #'
 #' @examples
@@ -28,7 +30,8 @@
 #' @export
 distance_join <- function(x, y, by = NULL, max_dist = 1,
                           method = c("euclidean", "manhattan"),
-                          mode = "inner") {
+                          mode = "inner",
+                          distance_col = NULL) {
   method <- match.arg(method)
 
   match_fun <- function(v1, v2) {
@@ -37,7 +40,11 @@ distance_join <- function(x, y, by = NULL, max_dist = 1,
     } else if (method == "manhattan") {
       d <- rowSums(abs(v1 - v2))
     }
-    d <= max_dist
+    ret <- dplyr::data_frame(instance = d <= max_dist)
+    if (!is.null(distance_col)) {
+      ret[[distance_col]] <- d
+    }
+    ret
   }
 
   fuzzy_join(x, y, multi_by = by, multi_match_fun = match_fun, mode = mode)
@@ -46,41 +53,53 @@ distance_join <- function(x, y, by = NULL, max_dist = 1,
 
 #' @rdname distance_join
 #' @export
-distance_inner_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1) {
-  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "inner")
+distance_inner_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1,
+                                distance_col = NULL) {
+  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "inner",
+                distance_col = distance_col)
 }
 
 
 #' @rdname distance_join
 #' @export
-distance_left_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1) {
-  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "left")
+distance_left_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1,
+                               distance_col = NULL) {
+  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "left",
+                distance_col = distance_col)
 }
 
 
 #' @rdname distance_join
 #' @export
-distance_right_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1) {
-  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "right")
+distance_right_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1,
+                                distance_col = NULL) {
+  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "right",
+                distance_col = distance_col)
 }
 
 
 #' @rdname distance_join
 #' @export
-distance_full_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1) {
-  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "full")
+distance_full_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1,
+                               distance_col = NULL) {
+  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "full",
+                distance_col = distance_col)
 }
 
 
 #' @rdname distance_join
 #' @export
-distance_semi_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1) {
-  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "semi")
+distance_semi_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1,
+                               distance_col = NULL) {
+  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "semi",
+                distance_col = distance_col)
 }
 
 
 #' @rdname distance_join
 #' @export
-distance_anti_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1) {
-  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "anti")
+distance_anti_join <- function(x, y, by = NULL, method = "euclidean", max_dist = 1,
+                               distance_col = NULL) {
+  distance_join(x, y, by, max_dist = max_dist, method = method, mode = "anti",
+                distance_col = distance_col)
 }

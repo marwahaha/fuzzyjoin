@@ -12,6 +12,8 @@
 #' @param ignore_case Whether to be case insensitive (default yes)
 #' @param method Method for computing string distance, see
 #' \code{stringdist-methods} in the stringdist package.
+#' @param distance_col If given, will add a column with this
+#' name containing the difference between the two
 #' @param mode One of "inner", "left", "right", "full" "semi", or "anti"
 #' @param ... Arguments passed on to \code{\link{stringdist}}
 #'
@@ -42,7 +44,8 @@ stringdist_join <- function(x, y, by = NULL, max_dist = 2,
                             method = c("osa", "lv", "dl", "hamming", "lcs", "qgram",
                                        "cosine", "jaccard", "jw", "soundex"),
                             mode = "inner",
-                            ignore_case = FALSE, ...) {
+                            ignore_case = FALSE,
+                            distance_col = NULL, ...) {
   method <- match.arg(method)
 
   if (method == "soundex") {
@@ -66,16 +69,18 @@ stringdist_join <- function(x, y, by = NULL, max_dist = 2,
       length_diff <- abs(stringr::str_length(v1) - stringr::str_length(v2))
       include <- length_diff <= max_dist
 
-      ret <- logical(length(v1))
+      dists <- rep(NA, length(v1))
 
-      dists <- stringdist::stringdist(v1[include], v2[include], method = method, ...)
-      ret[include] <- dists <= max_dist
-      ret
+      dists[include] <- stringdist::stringdist(v1[include], v2[include], method = method, ...)
     } else {
       # have to compute them all
       dists <- stringdist::stringdist(v1, v2, method = method, ...)
-      dists <= max_dist
     }
+    ret <- dplyr::data_frame(include = (dists <= max_dist))
+    if (!is.null(distance_col)) {
+      ret[[distance_col]] <- dists
+    }
+    ret
   }
 
   fuzzy_join(x, y, by = by, mode = mode, match_fun = match_fun)
@@ -84,41 +89,41 @@ stringdist_join <- function(x, y, by = NULL, max_dist = 2,
 
 #' @rdname stringdist_join
 #' @export
-stringdist_inner_join <- function(x, y, by = NULL, ...) {
-  stringdist_join(x, y, by, mode = "inner", ...)
+stringdist_inner_join <- function(x, y, by = NULL, distance_col = NULL, ...) {
+  stringdist_join(x, y, by, mode = "inner", distance_col = distance_col, ...)
 }
 
 
 #' @rdname stringdist_join
 #' @export
-stringdist_left_join <- function(x, y, by = NULL, ...) {
-  stringdist_join(x, y, by, mode = "left", ...)
+stringdist_left_join <- function(x, y, by = NULL, distance_col = NULL, ...) {
+  stringdist_join(x, y, by, mode = "left", distance_col = distance_col, ...)
 }
 
 
 #' @rdname stringdist_join
 #' @export
-stringdist_right_join <- function(x, y, by = NULL, ...) {
-  stringdist_join(x, y, by, mode = "right", ...)
+stringdist_right_join <- function(x, y, by = NULL, distance_col = NULL, ...) {
+  stringdist_join(x, y, by, mode = "right", distance_col = distance_col, ...)
 }
 
 
 #' @rdname stringdist_join
 #' @export
-stringdist_full_join <- function(x, y, by = NULL, ...) {
-  stringdist_join(x, y, by, mode = "full", ...)
+stringdist_full_join <- function(x, y, by = NULL, distance_col = NULL, ...) {
+  stringdist_join(x, y, by, mode = "full", distance_col = distance_col, ...)
 }
 
 
 #' @rdname stringdist_join
 #' @export
-stringdist_semi_join <- function(x, y, by = NULL, ...) {
-  stringdist_join(x, y, by, mode = "semi", ...)
+stringdist_semi_join <- function(x, y, by = NULL, distance_col = NULL, ...) {
+  stringdist_join(x, y, by, mode = "semi", distance_col = distance_col, ...)
 }
 
 
 #' @rdname stringdist_join
 #' @export
-stringdist_anti_join <- function(x, y, by = NULL, ...) {
-  stringdist_join(x, y, by, mode = "anti", ...)
+stringdist_anti_join <- function(x, y, by = NULL, distance_col = NULL, ...) {
+  stringdist_join(x, y, by, mode = "anti", distance_col = distance_col, ...)
 }

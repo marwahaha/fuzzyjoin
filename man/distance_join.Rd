@@ -11,19 +11,25 @@
 \title{Join two tables based on a distance metric of one or more columns}
 \usage{
 distance_join(x, y, by = NULL, max_dist = 1, method = c("euclidean",
-  "manhattan"), mode = "inner")
+  "manhattan"), mode = "inner", distance_col = NULL)
 
-distance_inner_join(x, y, by = NULL, method = "euclidean", max_dist = 1)
+distance_inner_join(x, y, by = NULL, method = "euclidean", max_dist = 1,
+  distance_col = NULL)
 
-distance_left_join(x, y, by = NULL, method = "euclidean", max_dist = 1)
+distance_left_join(x, y, by = NULL, method = "euclidean", max_dist = 1,
+  distance_col = NULL)
 
-distance_right_join(x, y, by = NULL, method = "euclidean", max_dist = 1)
+distance_right_join(x, y, by = NULL, method = "euclidean", max_dist = 1,
+  distance_col = NULL)
 
-distance_full_join(x, y, by = NULL, method = "euclidean", max_dist = 1)
+distance_full_join(x, y, by = NULL, method = "euclidean", max_dist = 1,
+  distance_col = NULL)
 
-distance_semi_join(x, y, by = NULL, method = "euclidean", max_dist = 1)
+distance_semi_join(x, y, by = NULL, method = "euclidean", max_dist = 1,
+  distance_col = NULL)
 
-distance_anti_join(x, y, by = NULL, method = "euclidean", max_dist = 1)
+distance_anti_join(x, y, by = NULL, method = "euclidean", max_dist = 1,
+  distance_col = NULL)
 }
 \arguments{
 \item{x}{A tbl}
@@ -38,6 +44,9 @@ distance_anti_join(x, y, by = NULL, method = "euclidean", max_dist = 1)
 or manhattan.}
 
 \item{mode}{One of "inner", "left", "right", "full" "semi", or "anti"}
+
+\item{distance_col}{If given, will add a column with this
+name containing the distance between the two}
 }
 \description{
 This differs from \code{\link{difference_join}} in that it considers
