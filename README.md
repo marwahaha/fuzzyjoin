@@ -5,7 +5,7 @@
 fuzzyjoin: Join data frames on inexact matching
 ------------------
 
-[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/fuzzyjoin)](http://cran.r-project.org/package=fuzzyjoin)
+[![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/fuzzyjoin)](https://cran.r-project.org/package=fuzzyjoin)
 [![Travis-CI Build Status](https://travis-ci.org/dgrtwo/fuzzyjoin.svg?branch=master)](https://travis-ci.org/dgrtwo/fuzzyjoin)
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/dgrtwo/fuzzyjoin?branch=master&svg=true)](https://ci.appveyor.com/project/dgrtwo/fuzzyjoin)
 [![Coverage Status](https://img.shields.io/codecov/c/github/dgrtwo/fuzzyjoin/master.svg)](https://codecov.io/github/dgrtwo/fuzzyjoin?branch=master)
@@ -215,10 +215,9 @@ joined_dists <- sub_misspellings %>%
                         distance_col = "distance")
 
 joined_dists
-#> Source: local data frame [7,427 x 5]
-#> 
+#> # A tibble: 7,427 × 5
 #>    misspelling    correct       word syllables distance
-#>          (chr)      (chr)      (chr)     (dbl)    (dbl)
+#>          <chr>      <chr>      <chr>     <dbl>    <dbl>
 #> 1   charactors characters  character         3        2
 #> 2   charactors characters charactery         4        2
 #> 3        sould     should       auld         1        2
@@ -229,7 +228,7 @@ joined_dists
 #> 8        sould     should       fold         1        2
 #> 9        sould     should       foul         1        2
 #> 10       sould     should      found         1        2
-#> ..         ...        ...        ...       ...      ...
+#> # ... with 7,417 more rows
 ```
 
 Note the extra `distance` column, which in this case will always be less than or equal to 2. We could then pick the closest match for each, and examine how many of our closest matches were 1 or 2 away:
@@ -238,14 +237,13 @@ Note the extra `distance` column, which in this case will always be less than or
 ```r
 closest <- joined_dists %>%
   group_by(misspelling) %>%
-  top_n(1, desc(distance))
+  top_n(1, desc(distance)) %>%
+  ungroup()
 
 closest
-#> Source: local data frame [1,437 x 5]
-#> Groups: misspelling [721]
-#> 
+#> # A tibble: 1,437 × 5
 #>     misspelling      correct        word syllables distance
-#>           (chr)        (chr)       (chr)     (dbl)    (dbl)
+#>           <chr>        <chr>       <chr>     <dbl>    <dbl>
 #> 1    charactors   characters   character         3        2
 #> 2    charactors   characters  charactery         4        2
 #> 3         sould       should       could         1        1
@@ -256,14 +254,13 @@ closest
 #> 8         sould       should       would         1        1
 #> 9  incorportaed incorporated incorporate         4        2
 #> 10         awya         away          aa         2        2
-#> ..          ...          ...         ...       ...      ...
+#> # ... with 1,427 more rows
 
 closest %>%
   count(distance)
-#> Source: local data frame [3 x 2]
-#> 
+#> # A tibble: 3 × 2
 #>   distance     n
-#>      (dbl) (int)
+#>      <dbl> <int>
 #> 1        0     1
 #> 2        1   725
 #> 3        2   711
@@ -378,7 +375,7 @@ passages <- data_frame(text = prideprejudice) %>%
   summarize(text = paste(text, collapse = " "))
 
 passages
-#> Source: local data frame [249 x 2]
+#> Source: local data frame [215 x 2]
 #> 
 #>    passage
 #>      (dbl)
@@ -435,20 +432,20 @@ This combines the two data frames based on cases where the `passages$text` colum
 ```r
 character_passages %>%
   select(passage, character, text)
-#> Source: local data frame [1,097 x 3]
+#> Source: local data frame [1,015 x 3]
 #> 
 #>    passage       character
 #>      (dbl)           (chr)
 #> 1        1      Mr. Bennet
 #> 2        1            Jane
-#> 3        2      Mr. Bennet
-#> 4        2            Jane
-#> 5        2           Lydia
-#> 6        2 Charlotte Lucas
-#> 7        3       Elizabeth
-#> 8        3      Mr. Bennet
-#> 9        3     Mrs. Bennet
-#> 10       4      Mr. Bennet
+#> 3        1 Charlotte Lucas
+#> 4        2       Elizabeth
+#> 5        2      Mr. Bennet
+#> 6        2     Mrs. Bennet
+#> 7        2            Jane
+#> 8        2           Lydia
+#> 9        3      Mr. Bennet
+#> 10       3     Mrs. Bennet
 #> ..     ...             ...
 #> Variables not shown: text (chr)
 ```
@@ -465,20 +462,20 @@ character_passages %>%
 #> 
 #>                   character     n
 #>                       (chr) (int)
-#> 1                 Elizabeth   217
-#> 2                     Darcy   152
-#> 3                      Jane   132
-#> 4               Mrs. Bennet    88
-#> 5                   Wickham    85
-#> 6               Mr. Collins    77
-#> 7                     Lydia    75
-#> 8           Charlotte Lucas    68
-#> 9                Mr. Bennet    53
-#> 10                    Kitty    40
-#> 11            Mrs. Gardiner    35
+#> 1                 Elizabeth   194
+#> 2                     Darcy   137
+#> 3                      Jane   122
+#> 4                   Wickham    82
+#> 5               Mrs. Bennet    79
+#> 6                     Lydia    72
+#> 7               Mr. Collins    70
+#> 8           Charlotte Lucas    60
+#> 9                Mr. Bennet    52
+#> 10                    Kitty    39
+#> 11            Mrs. Gardiner    33
 #> 12 Lady Catherine de Bourgh    26
-#> 13             Mr. Gardiner    25
-#> 14                     Mary    24
+#> 13             Mr. Gardiner    26
+#> 14                     Mary    23
 ```
 
 The data is also well suited to discover which characters appear in scenes together, and to cluster them to find groupings of characters (like in [this analysis]).

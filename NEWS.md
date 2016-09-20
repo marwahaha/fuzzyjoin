@@ -1,3 +1,8 @@
+# fuzzyjoin 0.1.2
+
+* Fixed bug that failed when single column data frames (not tbl_dfs) were given (#13)
+* Updated README for newest versions of dplyr and janeaustenr
+
 # fuzzyjoin 0.1.1
 
 ## Features

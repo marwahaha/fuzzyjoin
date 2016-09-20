@@ -231,3 +231,15 @@ test_that("stringdist_join works on grouped data frames", {
     }
   }
 })
+
+test_that("stringdist_join works on one-column data.frames", {
+  # this tests for (the fix of) the bug reported in #13
+  d <- data.frame(cut2 = c("Idea", "Premiums", "Premiom",
+                           "VeryGood", "VeryGood", "Faiir"))
+
+  diamonds <- as.data.frame(diamonds)
+  result <- stringdist_inner_join(diamonds, d, by = c(cut = "cut2"))
+  expect_is(result, "data.frame")
+  expect_true("cut2" %in% colnames(result))
+  expect_gt(nrow(result), 0)
+})
