@@ -32,18 +32,32 @@ test_that("geo_inner_join works", {
   expect_true(all(c("latitude.x", "latitude.y",
                     "longitude.x", "longitude.y") %in% colnames(j2)))
 
-  # try other methods
-  # skip vincentyellipsoid since it's very slow
+  # try other methods, and try each in miles and kilometers
   for (m in c("geo", "cosine", "meeus", "vincentysphere")) {
-    j3 <- latlong1 %>%
-      geo_inner_join(latlong2, method = m,
-                     max_dist = 1,
-                     distance_col = "distance")
+    for (unit in c("miles", "km")) {
+      j3 <- latlong1 %>%
+        geo_inner_join(latlong2, method = m, unit = unit,
+                       max_dist = 1 + (.609344 * (unit == "km")),
+                       distance_col = "distance")
 
-    # it should be pretty close to Haversine method
-    expect_true(all(j3$distance <= 1))
-    expect_lt(abs(nrow(j3) - nrow(j)), 2)
+      if (unit == "km") {
+        j3$distance <- j3$distance / 1.609344
+      }
+
+      # it should be pretty close to Haversine method
+      expect_true(all(j3$distance <= 1))
+      expect_lt(abs(nrow(j3) - nrow(j)), 2)
+    }
   }
+
+  # vincentyellipsoid is very slow
+  j4 <- latlong1 %>%
+    head(10) %>%
+    geo_inner_join(head(latlong2, 10), method = "vincentyellipsoid",
+                   max_dist = 1,
+                   distance_col = "distance")
+
+  expect_equal(nrow(j4), 0)
 })
 
 test_that("geo_inner_join works when lat/lon columns have different names", {
@@ -66,4 +80,12 @@ test_that("geo_inner_join works when lat/lon columns have different names", {
 
   expect_equal(j2$index1, j3$index1)
   expect_equal(j2$index2, j3$index2)
+})
+
+test_that("geo_inner_join throws an error when more than two columns match", {
+  latlongother1 <- mutate(latlong1, other = 1)
+  latlongother2 <- mutate(latlong1, other = 2)
+
+  expect_error(geo_inner_join(latlongother1, latlongother2),
+               "needs exactly two")
 })

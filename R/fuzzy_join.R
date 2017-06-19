@@ -16,6 +16,9 @@
 #' test matches together
 #' @param multi_match_fun Function to use for testing matches, performed
 #' on all columns in each data frame simultaneously
+#' @param index_match_fun Function to use for matching tables. Unlike
+#' \code{match_fun} and \code{index_match_fun}, this is performed on the
+#' original columns and returns pairs of indices.
 #' @param mode One of "inner", "left", "right", "full" "semi", or "anti"
 #' @param ... Extra arguments passed to match_fun
 #'
@@ -37,7 +40,7 @@
 #' @export
 fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
                        multi_by = NULL, multi_match_fun = NULL,
-                       mode = "inner", ...) {
+                       index_match_fun = NULL, mode = "inner", ...) {
   # preserve the grouping of x
   x_groups <- dplyr::groups(x)
   x <- dplyr::ungroup(x)
@@ -56,14 +59,14 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
 
   mode <- match.arg(mode, c("inner", "left", "right", "full", "semi", "anti"))
 
-  if (is.null(multi_match_fun) && is.null(match_fun)) {
-    stop("Must give either multi_match_fun or match_fun")
-  }
-  if (!is.null(multi_match_fun) && !is.null(match_fun)) {
-    stop("Must give only one of multi_match_fun or match_fun")
+  non_nulls <- (!is.null(multi_match_fun)) +
+    (!is.null(match_fun)) +
+    (!is.null(index_match_fun))
+  if (sum(non_nulls) != 1) {
+    stop("Must give exactly one of match_fun, multi_match_fun, and index_match_fun")
   }
 
-  if (is.null(multi_match_fun) || !is.null(by)) {
+  if (!is.null(match_fun)) {
     by <- common_by(by, x, y)
 
     if (length(match_fun) == 1) {
@@ -159,9 +162,11 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
           tidyr::gather(key, value, -x, -y, -name) %>%
           tidyr::unite(newname, name, key, sep = ".") %>%
           tidyr::spread(newname, value)
+      } else {
+        matches <- dplyr::distinct(matches, x, y)
       }
     }
-  } else {
+  } else if (!is.null(multi_match_fun)) {
     # use multiple matches
     by <- common_by(multi_by, x, y)
 
@@ -216,6 +221,14 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
         matches <- dplyr::bind_cols(matches, extra_cols_rep)
       }
     }
+  } else {
+    # raw index-index function
+    by <- common_by(multi_by, x, y)
+
+    d1 <- x[, by$x, drop = FALSE]
+    d2 <- y[, by$y, drop = FALSE]
+
+    matches <- index_match_fun(d1, d2)
   }
   matches$i <- NULL
 

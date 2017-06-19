@@ -184,6 +184,33 @@ test_that("stringdist_join works with data frames without matches", {
 })
 
 
+test_that("stringdist_join can ignore case", {
+  d_lowercase <- d %>%
+    mutate(cut2 = stringr::str_to_lower(cut2))
+
+  # no matches generally
+  j1 <- stringdist_inner_join(diamonds, d_lowercase, by = c(cut = "cut2"), distance_col = "distance",
+                              max_dist = 1)
+  expect_equal(nrow(j1), 0)
+
+  # but with case ignored...
+  j2 <- stringdist_inner_join(diamonds, d_lowercase, by = c(cut = "cut2"), distance_col = "distance",
+                              ignore_case = TRUE, max_dist = 1)
+  expect_gt(nrow(j2), 0)
+  expect_equal(sum(j2$cut == "Premium"), sum(diamonds$cut == "Premium") * 2)
+  expect_true(all(j2$distance[j2$cut2 == "idea"] == 1))
+})
+
+
+test_that("stringdist_join can use soundex matching", {
+  j <- stringdist_inner_join(diamonds, d, by = c(cut = "cut2"), distance_col = "distance",
+                             method = "soundex")
+
+  expect_gt(nrow(j), 0)
+  expect_equal(sum(j$cut == "Premium"), sum(diamonds$cut == "Premium") * 2)
+})
+
+
 test_that("stringdist_join renames similar columns", {
   d <- data_frame(cut = c("Idea", "Premiums", "Premiom",
                            "VeryGood", "VeryGood", "Faiir")) %>%
@@ -242,4 +269,10 @@ test_that("stringdist_join works on one-column data.frames", {
   expect_is(result, "data.frame")
   expect_true("cut2" %in% colnames(result))
   expect_gt(nrow(result), 0)
+})
+
+
+test_that("stringdist fails with no common variables", {
+  expect_error(stringdist_inner_join(diamonds, d),
+               "No common variables")
 })

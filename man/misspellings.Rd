@@ -41,4 +41,3 @@ misspellings <- h \%>\%
 
 }
 \keyword{datasets}
-
