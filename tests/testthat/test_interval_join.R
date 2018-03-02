@@ -9,6 +9,8 @@ y2 <- data.frame(id2 = 1:3, start2 = c(2, 4, 16), end2 = c(4, 8, 20))
 b2 <- c(start1 = "start2", end1 = "end2")
 
 test_that("Can inner join on intervals", {
+  skip_if_not_installed("IRanges")
+
   j <- interval_inner_join(x1, y1, by = b1)
   expect_equal(nrow(j), 2)
   expect_equal(colnames(j), c("id1", "start.x", "end.x", "id2", "start.y", "end.y"))
@@ -23,6 +25,8 @@ test_that("Can inner join on intervals", {
 })
 
 test_that("Can do non-inner joins on intervals", {
+  skip_if_not_installed("IRanges")
+
   j_left <- interval_left_join(x1, y1, by = b1)
   expect_equal(nrow(j_left), 3)
   expect_equal(j_left$start.x, x1$start)
@@ -46,12 +50,16 @@ test_that("Can do non-inner joins on intervals", {
 })
 
 test_that("Can do inner joins on intervals with findOverlaps arguments", {
-  j_maxgap <- interval_inner_join(x1, y1, maxgap = 1)
-  expect_equal(j_maxgap$id1, c(1, 1, 2, 2, 3))
-  expect_equal(j_maxgap$id2, c(1, 2, 1, 2, 3))
+  skip_if_not_installed("IRanges")
+
+  j_maxgap <- interval_inner_join(x1, y1, maxgap = 1.1)
+  expect_equal(j_maxgap$id1, c(1, 1, 2, 2, 3, 3))
+  expect_equal(j_maxgap$id2, c(1, 2, 1, 2, 2, 3))
 })
 
 test_that("Can join integer and double columns", {
+  skip_if_not_installed("IRanges")
+
   x1_int <- x1
   x1_int$start <- as.integer(x1_int$start)
   x1_int$end <- as.integer(x1_int$end)
@@ -80,6 +88,8 @@ x6$start <- as.POSIXct(x6$start)
 x6$end <- as.POSIXct(x6$end)
 
 test_that("Can do inner joins on dates and datetimes", {
+  skip_if_not_installed("IRanges")
+
   j_date <- interval_inner_join(x3, x4, by = b1)
   expect_equal(nrow(j_date), 2)
   expect_equal(j_date$id1, 1:2)
@@ -105,6 +115,8 @@ test_that("Can do inner joins on dates and datetimes", {
 })
 
 test_that("Joining non-compatible formats throws an error", {
+  skip_if_not_installed("IRanges")
+
   expect_error(interval_inner_join(x1, x3, by = b1), "Cannot join")
 
   expect_error(interval_inner_join(x4, x6, by = b1), "Cannot join")

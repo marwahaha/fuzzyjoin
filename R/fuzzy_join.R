@@ -126,8 +126,8 @@ fuzzy_join <- function(x, y, by = NULL, match_fun = NULL,
       x_indices_l <- indices_x$indices[w %% n_x + 1]
       y_indices_l <- indices_y$indices[w %/% n_x + 1]
 
-      xls <- lengths(x_indices_l)
-      yls <- lengths(y_indices_l)
+      xls <- sapply(x_indices_l, length)
+      yls <- sapply(y_indices_l, length)
 
       x_rep <- unlist(purrr::map2(x_indices_l, yls, function(x, y) rep(x, each = y)))
       y_rep <- unlist(purrr::map2(y_indices_l, xls, function(y, x) rep(y, x)))

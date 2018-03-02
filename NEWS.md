@@ -1,3 +1,9 @@
+# fuzzyjoin 0.1.4
+
+* Fixed failing test of `max_overlaps` in `interval_join`
+* Used conditional testing for the IRanges package
+* A few fixes to the README
+
 # fuzzyjoin 0.1.3
 
 * Added `interval_join`, which joins tables on cases where (start, end) intervals overlap between the two columns. This adds IRanges from Bioconductor to SUGGESTS.

@@ -13,6 +13,8 @@ x2 <- data_frame(id = 1:4,
                  end = c(160, 240, 415, 320))
 
 test_that("Can join genomes on chromosomes and intervals", {
+  skip_if_not_installed("IRanges")
+
   j <- genome_inner_join(x1, x2, by = c("chromosome", "start", "end"))
 
   expect_equal(j$chromosome.x, j$chromosome.y)
