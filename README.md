@@ -72,7 +72,7 @@ misspellings
 #>  3 abilties    abilities 
 #>  4 abilty      ability   
 #>  5 abondon     abandon   
-#>  6 abbout      about     
+#>  6 about      about     
 #>  7 abotu       about     
 #>  8 abouta      about a   
 #>  9 aboutit     about it  
